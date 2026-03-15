@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChinaConnect - Pitch Deck Interativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Modern Apple Aesthetic: Inter typography, Apple Blue (#0071E3), Mac Gray (#F5F5F7), Zinc-950 high-contrast -->
+    <!-- Application Structure Plan: The SPA is structured as an interactive investor pitch deck. It flows logically from Executive Summary -> Founders -> Value Proposition (Pillars) -> Competitor Analysis -> Business Model -> Investment (The Ask). This narrative flow is designed to build the case for the 2M BRL investment by first establishing credibility, showing market differentiation, and finally detailing the financial projections. Interactions (tabs, LCL calculator, dynamic charts) keep the investor engaged. -->
+    <!-- Visualization & Content Choices: 
+         1. Radar Chart: Compares ChinaConnect to standard competitors (Joompro, etc.) across key metrics (Ticket, Exclusivity). Justification: Quickly visualizes the "Blue Ocean" strategy. Method: Chart.js.
+         2. Doughnut Chart: Allocation of the R$ 2M investment. Justification: Shows "Smart Money" destination. Method: Chart.js.
+         3. Line Chart: 5-Year ROI projection. Justification: Essential for a BP/investor pitch. Method: Chart.js.
+         4. Interactive Grid: LCL 1m³ visualizer. Justification: Explains the strict integer volume rule intuitively. Method: HTML/JS Grid.
+         All visualizations avoid SVG/Mermaid to comply with rules. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 400;
+            background-color: #FFFFFF;
+            color: #18181b;
+            -webkit-font-smoothing: antialiased;
+        }
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            letter-spacing: -0.022em;
+        }
+        
+        /* Chart Container Requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 640px) {
+            .chart-container { height: 250px; }
+        }
+
+        /* LCL Container Grid - Mac Gray */
+        .container-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            background-color: #F5F5F7;
+            padding: 12px;
+            border-radius: 24px;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+        .cubic-meter {
+            aspect-ratio: 1;
+            background-color: #FFFFFF;
+            border-radius: 12px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #a1a1aa;
+            font-weight: 500;
+        }
+        .cubic-meter.filled {
+            background-color: #0071E3;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+        }
+
+        /* Business Model: 2 cols lado a lado */
+        .modelo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+            align-items: start;
+        }
+        @media (max-width: 767px) {
+            .modelo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tab Active State - Apple Blue */
+        .tab-active {
+            border-bottom: 2px solid #0071E3;
+            color: #18181b;
+            font-weight: 600;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #FFFFFF; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Navigation - Glassmorphism -->
+    <nav class="fixed w-full z-50" style="background: rgba(255,255,255,0.8); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold text-zinc-950 tracking-tight">China<span class="text-[#0071E3]">Connect</span></span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#visao-geral" class="text-[13px] font-medium text-zinc-500 hover:text-zinc-950 transition-colors">Visão Geral</a>
+                    <a href="#inovacao" class="text-[13px] font-medium text-zinc-500 hover:text-zinc-950 transition-colors">Pilares</a>
+                    <a href="#concorrencia" class="text-[13px] font-medium text-zinc-500 hover:text-zinc-950 transition-colors">Diferencial</a>
+                    <a href="#modelo" class="text-[13px] font-medium text-zinc-500 hover:text-zinc-950 transition-colors">Modelo</a>
+                    <a href="#investimento" class="px-5 py-1.5 rounded-full bg-zinc-950 text-white text-[13px] font-medium hover:bg-zinc-800 transition-all">Captação (R$ 2M)</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="visao-geral" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-zinc-950 tracking-tight leading-tight mb-6">
+                O Ecossistema B2B definitivo para <span class="text-[#0071E3]">IMPORTAÇÃO PRIME</span>
+            </h1>
+            <p class="text-lg font-light text-zinc-500 mb-8 leading-relaxed">
+                Esta seção apresenta a visão global da ChinaConnect. Nosso objetivo é criar uma ponte exclusiva entre a inovação chinesa e o mercado brasileiro de alto padrão, fugindo da comoditização. Somos um clube B2B exclusivo focado em alto ticket, tecnologia proprietária e curadoria especializada.
+            </p>
+        </div>
+
+        <!-- Founders Split -->
+        <div class="grid md:grid-cols-2 gap-8 items-stretch">
+            <div class="bg-white p-10 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all">
+                <div class="mb-4"><i class="ph ph-globe-hemisphere-west text-4xl text-[#0071E3]"></i></div>
+                <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-2">Thiago Bueno <span class="text-xs font-bold text-[#0071E3] bg-[#F5F5F7] px-3 py-1 rounded-full">60% - COO</span></h3>
+                <p class="text-zinc-500 text-sm font-normal mb-4">Sourcing & BrandingOperações China</p>
+                <ul class="space-y-2 text-zinc-500 text-sm font-normal">
+                    <li>• +15 anos de experiência em importação in loco.</li>
+                    <li>• Residência sazonal na China (2 a 3 meses/ano).</li>
+                    <li>• Expertise em outsourcing, negociação de fabricantes e tramites legais.</li>
+                    <li>• Gestão da equipe curadora de brasileiros na China.</li>
+                </ul>
+            </div>
+            <div class="bg-white p-10 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all">
+                <div class="mb-4"><i class="ph ph-laptop text-4xl text-[#0071E3]"></i></div>
+                <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-2">Josué Favalle <span class="text-xs font-bold text-[#0071E3] bg-[#F5F5F7] px-3 py-1 rounded-full">40% - CTO/CMO</span></h3>
+                <p class="text-zinc-500 text-sm font-normal mb-4">Tech & Estratégia</p>
+                <ul class="space-y-2 text-zinc-500 text-sm font-normal">
+                    <li>• +30 anos em varejo e tecnologia.</li>
+                    <li>• Arquitetura do portal: <strong>MedusaJS (Back) + Next.js (Front)</strong>.</li>
+                    <li>• Desenvolvimento da IA proprietária e integrações via API.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Strategic Pillars -->
+    <section id="inovacao" class="py-24 bg-[#F5F5F7] border-y border-zinc-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-zinc-950 tracking-tight mb-4">Pilares Estratégicos & Inovação</h2>
+                <p class="max-w-2xl mx-auto font-light text-zinc-500">
+                    Aqui detalhamos o que nos torna únicos. Não somos apenas um catálogo; somos uma incubadora e uma plataforma impulsionada por IA para produtos exclusivos. Navegue pelas abas para entender nossos diferenciais operacionais.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
+                <div class="flex border-b border-zinc-100 overflow-x-auto">
+                    <button class="tab-btn tab-active px-8 py-5 text-[13px] font-semibold whitespace-nowrap focus:outline-none" data-target="incubadora">INCUBADORA (SHARK TANK CHINA)</button>
+                    <button class="tab-btn px-8 py-5 text-[13px] font-semibold text-zinc-400 whitespace-nowrap focus:outline-none" data-target="ia">SOURCING VIA IA</button>
+                    <button class="tab-btn px-8 py-5 text-[13px] font-semibold text-zinc-400 whitespace-nowrap focus:outline-none" data-target="curadoria">CURADORIA BRASILEIRA</button>
+                    <button class="tab-btn px-8 py-5 text-[13px] font-semibold text-zinc-400 whitespace-nowrap focus:outline-none" data-target="transparencia">TRANSPAÊNCIA (DASHBOARD & ACOMPANHAMENTO)</button>
+                </div>
+
+                <div class="p-10">
+                    <div id="incubadora" class="tab-content">
+                        <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-4 flex items-center gap-2"><i class="ph ph-lightbulb text-[#0071E3]"></i> Incubadora de Ideias Brasileiras</h3>
+                        <p class="font-normal text-zinc-500 mb-4 leading-relaxed">Serviço exclusivo onde solucionamos o "Custo Brasil". Clientes inscrevem ideias inovadoras que não conseguem produzir localmente. Nós selecionamos as melhores, prototipamos e produzimos na China através do nosso escritório.</p>
+                        <ul class="list-disc pl-5 font-normal text-zinc-500 space-y-2">
+                            <li>Sociedade estruturada com o idealizador (% definida por projeto).</li>
+                            <li><strong>Exclusividade total</strong> de importação e revenda no Brasil (site paralelo).</li>
+                            <li>Geração de forte marketing orgânico/viral através de vídeos e acompanhamento do processo.</li>
+                        </ul>
+                    </div>
+                    <div id="ia" class="tab-content hidden">
+                        <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-4 flex items-center gap-2"><i class="ph ph-robot text-[#0071E3]"></i> Plataforma AI-Driven (Estilo Accio)</h3>
+                        <p class="font-normal text-zinc-500 mb-4 leading-relaxed">Integração com inteligência artificial para revolucionar a busca e criação de produtos. Os clientes VIP (Black) podem solicitar produtos complexos via prompts.</p>
+                        <ul class="list-disc pl-5 font-normal text-zinc-500 space-y-2">
+                            <li>Design de novos produtos a partir do zero baseado em descrições do cliente.</li>
+                            <li>Busca automatizada dos melhores fabricantes chineses baseada em requisitos técnicos.</li>
+                            <li>Análise de tendências de mercado para recomendar novos itens Prime.</li>
+                        </ul>
+                    </div>
+                    <div id="curadoria" class="tab-content hidden">
+                        <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-4 flex items-center gap-2"><i class="ph ph-seal-check text-[#0071E3]"></i> O "Gosto Prime" Brasileiro</h3>
+                        <p class="font-normal text-zinc-500 mb-4 leading-relaxed">O mercado chinês não compreende nativamente as nuances do alto padrão brasileiro. Por isso, mantemos uma equipe in loco.</p>
+                        <ul class="list-disc pl-5 font-normal text-zinc-500 space-y-2">
+                            <li>Foco estrito em: Eletrodomésticos premium, móveis indoor/outdoor de luxo, gadgets diferenciados, iluminação especial, etc.</li>
+                            <li>Zero "baciada" ou produtos de centavos encontrados no Brás ou Shopee.</li>
+                            <li>Teste e validação de amostras com foco no gosto do empresário brasileiro exigente.</li>
+                        </ul>
+                    </div>
+                    <div id="transparencia" class="tab-content hidden">
+                        <h3 class="text-2xl font-bold text-zinc-950 tracking-tight mb-4 flex items-center gap-2"><i class="ph ph-monitor text-[#0071E3]"></i> Dashboard & Transparência</h3>
+                        <p class="font-normal text-zinc-500 mb-4 leading-relaxed">Uma experiência de compra segura e rastreável, suportada por nossa robusta arquitetura Next.js/MedusaJS.</p>
+                        <ul class="list-disc pl-5 font-normal text-zinc-500 space-y-2">
+                            <li>Painel do cliente com rastreio em tempo real do container LCL.</li>
+                            <li>Upload de fotos e vídeos da produção e inspeção diretamente da fábrica na China.</li>
+                            <li>Zero contato visual do cliente final com o fornecedor chinês (White Label/Prime Gate).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Competitors Analysis -->
+    <section id="concorrencia" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-zinc-950 tracking-tight mb-4">Posicionamento de Mercado</h2>
+            <p class="max-w-2xl mx-auto font-light text-zinc-500">
+                Nesta seção, visualizamos como a ChinaConnect se diferencia das plataformas de atacado existentes (Joompro, Utimix, Rakumart, Pindau). Nosso foco não é volume de baixo custo, mas sim exclusividade, ticket médio alto e serviços de valor agregado (IA, Incubadora).
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="bg-white p-10 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100">
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <p class="text-center text-[11px] font-medium text-zinc-400 mt-6 uppercase tracking-wider">ChinaConnect vs. Concorrentes de Atacado</p>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="p-8 bg-[#F5F5F7] rounded-[24px] border border-zinc-100">
+                    <h4 class="font-bold text-zinc-950 tracking-tight mb-3 flex items-center"><span class="w-2 h-2 bg-zinc-400 rounded-full mr-2"></span> O Modelo Antigo (Concorrentes)</h4>
+                    <p class="text-sm font-normal text-zinc-500 leading-relaxed">APIs ligadas ao Alibaba oferecendo milhares de commodities. Foco em quantidade mínima gigante ou containers fechados para produtos de baixo valor agregado. Batalha de preço.</p>
+                </div>
+                <div class="p-8 rounded-[24px] border border-[#0071E3]/20" style="background: rgba(0,113,227,0.04);">
+                    <h4 class="font-bold text-[#0071E3] tracking-tight mb-3 flex items-center"><span class="w-2 h-2 bg-[#0071E3] rounded-full mr-2"></span> O Oceano Azul (ChinaConnect)</h4>
+                    <p class="text-sm font-normal text-zinc-600 leading-relaxed">Clube B2B restrito. Seleção a dedo de produtos Prime (Ex: Scooters elétricas, Projetores High-end). Permite consolidação em espaços menores (1m³), viabilizando importação de alto padrão para PMEs e pessoas físicas (CNPJ).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Business Model (B2B Club & LCL) -->
+    <section id="modelo" class="py-24 rounded-[40px] mx-4 mb-24 overflow-hidden" style="background: #09090b;">
+        <div class="max-w-7xl mx-auto px-6 sm:px-12">
+            <div class="text-center mb-20">
+                <h2 class="text-4xl font-bold text-white tracking-tight mb-6">Modelo de Negócios & Logística</h2>
+                <p class="max-w-2xl mx-auto font-normal text-zinc-400">
+                    Nossa monetização vem de mensalidades de afiliados, margem nos produtos e a Incubadora de Ideias Brasileiras. Abaixo, temos o exemplo dos níveis de acesso do Clube e nossa calculadora de volume (LCL).
+                </p>
+            </div>
+
+            <div class="modelo-grid">
+                <div>
+                    <h3 class="text-sm font-bold text-[#0071E3] uppercase tracking-widest mb-8">Níveis do Clube B2B</h3>
+                    <div class="space-y-4">
+                        <div class="bg-white/5 p-6 rounded-[24px] border border-white/10 flex justify-between items-center hover:bg-white/10 transition-all">
+                            <div class="flex items-center gap-3">
+                                <i class="ph ph-user text-xl text-zinc-400"></i>
+                                <div>
+                                    <h4 class="font-bold text-zinc-100">Tier Guest</h4>
+                                    <p class="text-xs text-zinc-500">Acesso básico ao catálogo aberto.</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold px-3 py-1 bg-white/10 rounded-full text-zinc-300">FREE</span>
+                        </div>
+                        <div class="bg-white/5 p-6 rounded-[24px] border border-white/10 flex justify-between items-center hover:bg-white/10 transition-all">
+                            <div class="flex items-center gap-3">
+                                <i class="ph ph-medal-military text-xl text-zinc-400"></i>
+                                <div>
+                                    <h4 class="font-bold text-zinc-100">Tier Gold</h4>
+                                    <p class="text-xs text-zinc-500">Descontos no frete LCL e alertas de tendências.</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold px-3 py-1 bg-[#0071E3] rounded-full text-white">ASSINATURA</span>
+                        </div>
+                        <div class="bg-white/5 p-6 rounded-[24px] border border-white/10 flex justify-between items-center hover:bg-white/10 transition-all">
+                            <div class="flex items-center gap-3">
+                                <i class="ph ph-star text-xl text-zinc-400"></i>
+                                <div>
+                                    <h4 class="font-bold text-zinc-100">Tier Platinum</h4>
+                                    <p class="text-xs text-zinc-500">Acesso aos produtos "Fechados" e exclusivos.</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] font-bold px-3 py-1 bg-[#0071E3] rounded-full text-white">ASSINATURA</span>
+                        </div>
+                        <div class="p-6 rounded-[24px] border border-[#0071E3]/50 flex justify-between items-center relative overflow-hidden group hover:bg-[#0071E3]/10 transition-all" style="background: rgba(9,9,11,0.95);">
+                            <div class="absolute right-[-10px] top-[-10px] text-5xl opacity-10 text-white"><i class="ph ph-crown"></i></div>
+                            <div class="relative z-10 flex items-center gap-3">
+                                <i class="ph ph-crown text-xl text-[#0071E3]"></i>
+                                <div>
+                                    <h4 class="font-bold text-[#0071E3]">Tier Black</h4>
+                                    <p class="text-xs text-zinc-400">Serviço Concierge, IA Sourcing sob demanda, Projetos Especiais.</p>
+                                </div>
+                            </div> <span class="relative z-10 text-[11px] font-bold px-3 py-1 bg-[#0071E3] rounded-full text-white">PREMIUM</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-[#0071E3] uppercase tracking-widest mb-8">A Regra do CBM (Metro Cúbico)</h3>
+                <div class="bg-white/5 p-8 rounded-[24px] border border-white/10">
+                        <div class="flex justify-between items-end mb-8">
+                            <div class="text-left">
+                                <p class="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Volume Atual</p>
+                                <p class="text-5xl font-bold text-white"><span id="cbm-counter">0</span> <span class="text-xl text-zinc-600">m³</span></p>
+                            </div>
+                            <button id="add-cbm-btn" class="px-6 py-2.5 bg-[#0071E3] hover:bg-[#0077ed] text-white rounded-full text-xs font-bold transition-all flex items-center gap-2">
+                                <i class="ph-bold ph-plus-circle text-base"></i> ADICIONAR 1m³
+                            </button>
+                        </div>
+                        
+                        <div class="container-grid" id="lcl-container">
+                            <div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div>
+                            <div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div>
+                            <div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div><div class="cubic-meter">1m³</div>
+                        </div>
+                        <p class="text-[11px] font-bold text-zinc-500 mt-6 uppercase tracking-wider" id="cbm-message">Mínimo para checkout: 1m³.</p>
+                        <button id="reset-cbm-btn" class="mt-4 text-[11px] font-bold text-zinc-600 hover:text-white transition-colors flex items-center gap-1.5"><i class="ph-bold ph-arrows-counter-clockwise"></i> ZERAR CONTAINER</button>
+                    </div>
+                    <br>
+                    <p class="text-sm font-normal text-zinc-400 mb-8">Trabalhamos com LCL (Less than Container Load). Para simplificar o processo, o carrinho deve totalizar unidades inteiras de m³. <strong>Interaja abaixo para simular:</strong></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Investment / BP Section -->
+    <section id="investimento" class="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold text-zinc-950 tracking-tight mb-4">Captação: R$ 2 Milhões</h2>
+            <p class="max-w-2xl mx-auto font-light text-zinc-500 leading-relaxed">
+                Esta seção detalha a rodada de investimento. Buscamos "Smart Money" — investidores que, além de capital, agreguem forte networking comercial.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-12">
+            <!-- Allocation Chart -->
+            <div class="bg-white p-10 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100">
+                <h3 class="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-8 text-center">Alocação de Recursos</h3>
+                <div class="chart-container">
+                    <canvas id="donutChart"></canvas>
+                </div>
+                <div class="mt-10 grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-[#F5F5F7] rounded-[24px] border border-zinc-100 flex items-start gap-3">
+                        <i class="ph ph-cpu text-xl text-[#0071E3] shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="block text-[#0071E3] text-[11px] font-bold uppercase mb-1">Tech & IA</span>
+                            <p class="text-[11px] font-normal text-zinc-500">MedusaJS, Next.js e IA proprietária.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-[#F5F5F7] rounded-[24px] border border-zinc-100 flex items-start gap-3">
+                        <i class="ph ph-megaphone text-xl text-[#0071E3] shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="block text-[#0071E3] text-[11px] font-bold uppercase mb-1">Marketing</span>
+                            <p class="text-[11px] font-normal text-zinc-500">Afiliados e Audiovisual Incubadora.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-[#F5F5F7] rounded-[24px] border border-zinc-100 flex items-start gap-3">
+                        <i class="ph ph-coins text-xl text-zinc-400 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="block text-zinc-500 text-[11px] font-bold uppercase mb-1">Capital de Giro</span>
+                            <p class="text-[11px] font-normal text-zinc-500">Reserva para negociações de volume e liquidez em operações de câmbio.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-[#F5F5F7] rounded-[24px] border border-zinc-100 flex items-start gap-3">
+                        <i class="ph ph-factory text-xl text-zinc-400 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="block text-zinc-500 text-[11px] font-bold uppercase mb-1">Ops China & Incubadora</span>
+                            <p class="text-[11px] font-normal text-zinc-500">Estrutura de auditores brasileiros fixos em Ningbo e Shenzhen.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projections Chart -->
+            <div class="bg-white p-10 rounded-[24px] shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-zinc-100">
+                <h3 class="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-8 text-center">Projeção Financeira (5 Anos)</h3>
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+                <p class="text-[10px] font-bold text-zinc-400 mt-10 text-center uppercase tracking-widest italic">
+                    Crescimento exponencial via MRR e LCL Scale.
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-16 text-center bg-[#F5F5F7] p-12 rounded-[40px] border border-zinc-100">
+            <h3 class="text-3xl font-bold text-zinc-950 tracking-tight mb-6">Próximos Passos</h3>
+            <p class="font-normal text-zinc-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+                Precisamos validar em conjunto: <strong>% de equity oferecido, Valuation Pre-Money, e marcos exatos de saída estratégica.</strong>
+            </p>
+            <button class="px-10 py-4 bg-zinc-950 text-white rounded-full text-sm font-bold hover:bg-zinc-800 transition-all shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
+                Agendar Reunião de Fechamento do BP
+            </button>
+        </div>
+    </section>
+
+    <footer class="bg-white text-zinc-400 py-12 text-center border-t border-zinc-100">
+        <p class="text-[11px] font-bold uppercase tracking-widest">&copy; 2026 ChinaConnect. Thiago Bueno & Josué Favalle.</p>
+        <p class="mt-3 text-[10px] opacity-60">Uso Interno e Investidores Qualificados.</p>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- TAB LOGIC (Inovação Section) ---
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Remove active from all
+                    tabBtns.forEach(b => {
+                        b.classList.remove('tab-active', 'text-zinc-950');
+                        b.classList.add('text-zinc-400');
+                    });
+                    tabContents.forEach(c => c.classList.add('hidden'));
+
+                    // Add active to clicked
+                    btn.classList.add('tab-active', 'text-zinc-950');
+                    btn.classList.remove('text-zinc-400');
+                    const targetId = btn.getAttribute('data-target');
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
+
+            // --- LCL INTERACTIVE LOGIC ---
+            const addBtn = document.getElementById('add-cbm-btn');
+            const resetBtn = document.getElementById('reset-cbm-btn');
+            const counterEl = document.getElementById('cbm-counter');
+            const msgEl = document.getElementById('cbm-message');
+            const gridCells = document.querySelectorAll('.cubic-meter');
+            let currentCbm = 0;
+            const maxCbm = 12; // Just for visual purposes in grid
+
+            addBtn.addEventListener('click', () => {
+                if(currentCbm < maxCbm) {
+                    gridCells[currentCbm].classList.add('filled');
+                    gridCells[currentCbm].textContent = '✔';
+                    currentCbm++;
+                    updateCbmUI();
+                } else {
+                    msgEl.textContent = "Container virtual cheio! Na prática, abrimos outro.";
+                    msgEl.classList.add('text-[#0071E3]');
+                }
+            });
+
+            resetBtn.addEventListener('click', () => {
+                currentCbm = 0;
+                gridCells.forEach(cell => {
+                    cell.classList.remove('filled');
+                    cell.textContent = '1m³';
+                });
+                updateCbmUI();
+                msgEl.classList.remove('text-[#0071E3]');
+            });
+
+            function updateCbmUI() {
+                counterEl.textContent = currentCbm;
+                if(currentCbm > 0 && currentCbm < maxCbm) {
+                    msgEl.textContent = `Regra atendida: ${currentCbm}m³ (inteiro) liberado para checkout.`;
+                } else if (currentCbm === 0) {
+                    msgEl.textContent = "O carrinho requer números inteiros. Mínimo: 1m³.";
+                }
+            }
+
+            // --- CHART.JS VISUALIZATIONS ---
+            Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+            Chart.defaults.color = '#a1a1aa';
+
+            // 1. Radar Chart: Competitor Matrix
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Ticket Médio', 'Exclusividade (Prime)', 'Tecnologia/IA', 'Serviço Incubadora', 'Acessibilidade (Volume)'],
+                    datasets: [{
+                        label: 'ChinaConnect',
+                        data: [9, 10, 8, 10, 7],
+                        backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                        borderColor: '#0071E3',
+                        pointBackgroundColor: '#0071E3',
+                        borderWidth: 2
+                    }, {
+                        label: 'Concorrentes Tradicionais (Ex: Joompro)',
+                        data: [3, 2, 4, 1, 9],
+                        backgroundColor: 'rgba(245, 245, 247, 0.5)',
+                        borderColor: '#d4d4d8',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.06)' },
+                            grid: { color: '#f2f2f2' },
+                            pointLabels: {
+                                font: { size: 10, weight: '600' },
+                                callback: function(val) {
+                                    return val.length > 16 ? val.match(/.{1,16}(\s|$)/g) : val;
+                                }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 10
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                        tooltip: { backgroundColor: 'rgba(9, 9, 11, 0.9)', padding: 12 }
+                    }
+                }
+            });
+
+            // 2. Doughnut Chart: Investment Allocation
+            const ctxDonut = document.getElementById('donutChart').getContext('2d');
+            new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Capital de Giro', 'Tech (Medusa/Next/IA)', 'Marketing & Afiliados', 'Ops China & Incubadora'],
+                    datasets: [{
+                        data: [30, 25, 25, 20],
+                        backgroundColor: [
+                            '#09090b',
+                            '#0071E3',
+                            '#F5F5F7',
+                            '#71717a'
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%',
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            backgroundColor: 'rgba(9, 9, 11, 0.9)',
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.label + ': ' + context.parsed + '% (R$ ' + (context.parsed * 20000).toLocaleString('pt-BR') + ')';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. Line Chart: Financial Projections
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: ['Ano 1', 'Ano 2', 'Ano 3', 'Ano 4', 'Ano 5'],
+                    datasets: [
+                        {
+                            label: 'Receita (M)',
+                            data: [1.5, 4.2, 8.5, 15.0, 25.0],
+                            borderColor: '#0071E3',
+                            backgroundColor: 'rgba(0, 113, 227, 0.05)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'Custos/Despesas Opex',
+                            data: [1.8, 3.0, 5.0, 8.0, 12.0],
+                            borderColor: '#d4d4d8',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f2f2f2' }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { 
+                            backgroundColor: 'rgba(9, 9, 11, 0.9)',
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': R$ ' + context.parsed.y + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
